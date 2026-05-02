@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CivicConnect — Smart City Community Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+/* ─── RESET & TOKENS ─────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0b1f3a;--navy-2:#112244;--navy-3:#1a3a6b;
+  --blue:#1d5fc4;--blue-2:#2770d8;--blue-3:#4d8de8;
+  --blue-lt:#e8f0fd;--blue-ltr:#f2f6ff;
+  --red:#c0392b;--red-lt:#fdecea;
+  --green:#1a7f4b;--green-lt:#e6f7ef;
+  --amber:#b45309;--amber-lt:#fef3e2;
+  --gray-9:#0f172a;--gray-7:#374151;--gray-6:#4b5563;
+  --gray-5:#6b7280;--gray-4:#9ca3af;--gray-3:#d1d5db;
+  --gray-2:#e5e7eb;--gray-1:#f3f4f6;--gray-0:#f9fafb;
+  --white:#ffffff;
+  --font-body:'Inter',sans-serif;--font-head:'Syne',sans-serif;
+  --shadow-xs:0 1px 2px rgba(0,0,0,.06);
+  --shadow-sm:0 2px 8px rgba(0,0,0,.08);
+  --shadow-md:0 4px 20px rgba(0,0,0,.10);
+  --shadow-lg:0 8px 40px rgba(0,0,0,.13);
+  --shadow-xl:0 16px 64px rgba(0,0,0,.16);
+  --r-sm:6px;--r-md:10px;--r-lg:16px;--r-xl:24px;--r-2xl:32px;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);color:var(--gray-9);background:var(--white);overflow-x:hidden;line-height:1.6}
+img{display:block;max-width:100%}
+a{text-decoration:none;color:inherit}
+button{font-family:var(--font-body);cursor:pointer}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--gray-1)}
+::-webkit-scrollbar-thumb{background:var(--blue-3);border-radius:3px}
+
+/* ─── TICKER ─────────────────────────────────────── */
+.ticker-bar{background:var(--red);color:#fff;padding:7px 0;overflow:hidden;position:relative;z-index:1000}
+.ticker-track{display:flex;white-space:nowrap;animation:tickerRun 32s linear infinite}
+.ticker-track:hover{animation-play-state:paused}
+@keyframes tickerRun{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-item{display:inline-flex;align-items:center;gap:7px;padding:0 36px;font-size:12.5px;font-weight:600;letter-spacing:.2px}
+.ticker-sep{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.5)}
+
+/* ─── NAVBAR ─────────────────────────────────────── */
+.navbar{position:sticky;top:0;z-index:900;background:var(--white);border-bottom:1px solid var(--gray-2);box-shadow:var(--shadow-xs)}
+.nav-wrap{max-width:1260px;margin:0 auto;padding:0 24px;display:flex;align-items:center;height:66px;gap:14px}
+.nav-brand{display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0}
+.nav-brand-mark{width:38px;height:38px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center}
+.nav-brand-mark svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nav-brand-text{font-family:var(--font-head);font-size:16px;font-weight:700;color:var(--navy);line-height:1.2}
+.nav-brand-text small{display:block;font-family:var(--font-body);font-weight:400;font-size:10.5px;color:var(--blue);letter-spacing:.4px;text-transform:uppercase}
+.nav-spacer{flex:1}
+.nav-search-wrap{display:flex;align-items:center;gap:8px;padding:8px 14px;border:1.5px solid var(--gray-2);border-radius:var(--r-md);background:var(--gray-0);transition:.2s}
+.nav-search-wrap:focus-within{border-color:var(--blue-3);background:var(--white)}
+.nav-search-wrap svg{width:15px;height:15px;stroke:var(--gray-5);flex-shrink:0}
+.nav-search-wrap input{border:none;background:transparent;outline:none;font-size:13px;color:var(--gray-7);width:190px;font-family:var(--font-body)}
+.nav-btns{display:flex;align-items:center;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--r-md);font-size:13.5px;font-weight:600;border:none;transition:.18s;cursor:pointer;font-family:var(--font-body);white-space:nowrap}
+.btn-ghost{background:transparent;border:1.5px solid var(--gray-3);color:var(--gray-7)}
+.btn-ghost:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-ltr)}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(29,95,196,.25)}
+.btn-primary:hover{background:var(--blue-2);transform:translateY(-1px)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{background:#a93226}
+.btn-lg{padding:13px 28px;font-size:15px;border-radius:var(--r-lg)}
+.btn-sm{padding:7px 13px;font-size:12.5px;border-radius:var(--r-sm)}
+.btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.hamburger-btn{width:38px;height:38px;border:none;background:transparent;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4.5px}
+.hamburger-btn span{display:block;width:20px;height:1.8px;background:var(--navy);border-radius:2px;transition:.25s}
+#navUser{display:flex;align-items:center;gap:8px}
+
+/* ─── SIDEBAR ─────────────────────────────────────── */
+.sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:1100;opacity:0;pointer-events:none;transition:.28s}
+.sidebar-overlay.open{opacity:1;pointer-events:all}
+.sidebar{position:fixed;top:0;left:-310px;width:290px;height:100vh;background:var(--white);z-index:1200;overflow-y:auto;transition:.32s cubic-bezier(.4,0,.2,1);box-shadow:var(--shadow-xl)}
+.sidebar.open{left:0}
+.sidebar-head{background:var(--navy);padding:18px 18px 16px;display:flex;align-items:center;justify-content:space-between}
+.sidebar-brand{font-family:var(--font-head);color:#fff;font-size:15.5px;font-weight:700;line-height:1.2}
+.sidebar-brand span{display:block;font-family:var(--font-body);font-size:10.5px;font-weight:400;color:rgba(255,255,255,.55);margin-top:2px;letter-spacing:.3px}
+.sidebar-close{background:rgba(255,255,255,.12);border:none;color:#fff;width:30px;height:30px;border-radius:var(--r-sm);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.sidebar-close svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round}
+.sb-section{padding:6px 16px 2px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-4)}
+.sb-item{display:flex;align-items:center;gap:11px;padding:12px 16px;font-size:13.5px;font-weight:500;color:var(--gray-7);cursor:pointer;border-left:3px solid transparent;transition:.14s}
+.sb-item:hover{background:var(--blue-ltr);color:var(--blue);border-left-color:var(--blue-3)}
+.sb-item.active{background:var(--blue-ltr);color:var(--blue);border-left-color:var(--blue)}
+.sb-item svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.sb-divider{height:1px;background:var(--gray-2);margin:6px 16px}
+.sb-action{display:block;margin:10px 14px 4px;padding:11px;text-align:center;font-weight:600;font-size:13px;border-radius:var(--r-md);cursor:pointer;border:none;font-family:var(--font-body);width:calc(100% - 28px)}
+
+/* ─── TABS ────────────────────────────────────────── */
+.tab-bar{background:var(--white);border-bottom:1px solid var(--gray-2);position:sticky;top:66px;z-index:800;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-inner{max-width:1260px;margin:0 auto;padding:0 20px;display:flex;gap:2px;min-width:max-content}
+.tab-btn{padding:14px 18px;font-size:13px;font-weight:600;color:var(--gray-5);border:none;background:transparent;border-bottom:2.5px solid transparent;cursor:pointer;white-space:nowrap;transition:.16s;display:flex;align-items:center;gap:6px;font-family:var(--font-body)}
+.tab-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tab-btn:hover{color:var(--blue)}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* ─── SECTION SHELLS ─────────────────────────────── */
+.section{padding:80px 24px}
+.section-inner{max-width:1260px;margin:0 auto}
+.section-bg{background:var(--gray-0)}
+.section-label{display:inline-flex;align-items:center;gap:6px;padding:4px 13px;background:var(--blue-lt);border:1px solid #c5d9f9;border-radius:100px;color:var(--blue);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+.section-label svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.section-title{font-family:var(--font-head);font-size:clamp(26px,3.8vw,42px);font-weight:800;color:var(--navy);line-height:1.18;margin-bottom:12px}
+.section-title .hl{color:var(--blue)}
+.section-desc{font-size:15.5px;color:var(--gray-6);line-height:1.72;max-width:580px;margin-bottom:48px}
+
+/* ─── HERO ────────────────────────────────────────── */
+.hero{position:relative;min-height:92vh;display:flex;align-items:center;overflow:hidden;background:var(--navy)}
+.hero-img{position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1573164713714-d95e436ab8d4?w=1800&q=85&auto=format&fit=crop') center/cover no-repeat}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(110deg,rgba(11,31,58,.92) 0%,rgba(11,31,58,.80) 55%,rgba(17,34,68,.60) 100%)}
+.hero-grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:52px 52px}
+.hero-content{position:relative;z-index:2;max-width:1260px;margin:0 auto;padding:80px 24px;width:100%}
+.hero-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 15px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:100px;color:rgba(255,255,255,.8);font-size:12.5px;font-weight:500;margin-bottom:22px;backdrop-filter:blur(8px)}
+.hero-pulse{width:7px;height:7px;background:#4ade80;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.85);opacity:.65}}
+.hero-title{font-family:var(--font-head);font-size:clamp(34px,6vw,70px);font-weight:800;color:#fff;line-height:1.07;margin-bottom:18px}
+.hero-title .accent{color:#90c0f8}
+.hero-sub{font-size:clamp(15px,2vw,18.5px);color:rgba(255,255,255,.68);max-width:540px;line-height:1.72;margin-bottom:38px}
+.hero-search-bar{display:flex;max-width:520px;margin-bottom:32px;border-radius:var(--r-lg);overflow:hidden;background:rgba(255,255,255,.09);border:1.5px solid rgba(255,255,255,.15);backdrop-filter:blur(10px)}
+.hero-search-bar input{flex:1;background:transparent;border:none;padding:15px 20px;font-size:14.5px;color:#fff;font-family:var(--font-body);outline:none}
+.hero-search-bar input::placeholder{color:rgba(255,255,255,.42)}
+.hero-search-btn{padding:0 20px;background:var(--blue);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;transition:.18s}
+.hero-search-btn:hover{background:var(--blue-2)}
+.hero-search-btn svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hero-ctas{display:flex;flex-wrap:wrap;gap:11px;margin-bottom:54px}
+.hero-stats{display:flex;flex-wrap:wrap;gap:36px}
+.hero-stat-num{font-family:var(--font-head);font-size:30px;font-weight:800;color:#fff;line-height:1}
+.hero-stat-lbl{font-size:12.5px;color:rgba(255,255,255,.52);line-height:1.4;margin-top:3px}
+
+/* ─── INTRO CARDS ─────────────────────────────────── */
+.intro-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:22px;margin-bottom:56px}
+.intro-card{background:var(--white);border:1px solid var(--gray-2);border-radius:var(--r-lg);padding:26px;transition:.22s;position:relative;overflow:hidden}
+.intro-card:hover{border-color:var(--blue-3);box-shadow:var(--shadow-md);transform:translateY(-3px)}
+.intro-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--blue);transform:scaleX(0);transition:.22s;transform-origin:left}
+.intro-card:hover::after{transform:scaleX(1)}
+.intro-icon{width:48px;height:48px;border-radius:var(--r-md);background:var(--blue-lt);display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.intro-icon svg{width:22px;height:22px;stroke:var(--blue);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.intro-card h3{font-family:var(--font-head);font-size:16px;font-weight:700;color:var(--navy);margin-bottom:7px}
+.intro-card p{font-size:13.5px;color:var(--gray-6);line-height:1.68}
+
+/* ─── SERVICE CARDS ───────────────────────────────── */
+.services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:22px}
+.service-card{background:var(--white);border:1px solid var(--gray-2);border-radius:var(--r-lg);overflow:hidden;transition:.22s}
+.service-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-4px);border-color:var(--blue-3)}
+.service-card-img{height:158px;overflow:hidden;position:relative}
+.service-card-img img{width:100%;height:100%;object-fit:cover;transition:.3s}
+.service-card:hover .service-card-img img{transform:scale(1.04)}
+.svc-badge{position:absolute;top:10px;right:10px;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px}
+.badge-avail{background:var(--green-lt);color:var(--green)}
+.badge-busy{background:var(--amber-lt);color:var(--amber)}
+.svc-verified{position:absolute;top:10px;left:10px;background:var(--blue);color:#fff;padding:3px 9px;border-radius:100px;font-size:10.5px;font-weight:700;display:flex;align-items:center;gap:4px}
+.svc-verified svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.service-card-body{padding:18px}
+.svc-cat{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.svc-name{font-family:var(--font-head);font-size:15.5px;font-weight:700;color:var(--navy);margin-bottom:6px;line-height:1.3}
+.svc-desc{font-size:12.5px;color:var(--gray-6);line-height:1.62;margin-bottom:12px}
+.svc-info{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.svc-info-row{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--gray-6)}
+.svc-info-row svg{width:13px;height:13px;stroke:var(--blue);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.svc-info-row a{color:var(--gray-6);transition:.15s}
+.svc-info-row a:hover{color:var(--blue)}
+.svc-actions{display:flex;gap:7px}
+
+/* ─── FILTER + SEARCH ─────────────────────────────── */
+.filter-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:28px}
+.chip{padding:7px 16px;border-radius:100px;font-size:12.5px;font-weight:600;cursor:pointer;border:1.5px solid var(--gray-2);background:var(--white);color:var(--gray-6);transition:.16s;display:flex;align-items:center;gap:5px}
+.chip:hover,.chip.active{border-color:var(--blue);background:var(--blue-lt);color:var(--blue)}
+.chip svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.search-field{display:flex;align-items:center;gap:9px;padding:11px 15px;border:1.5px solid var(--gray-2);border-radius:var(--r-md);background:var(--white);max-width:460px;margin-bottom:18px;transition:.18s}
+.search-field:focus-within{border-color:var(--blue-3)}
+.search-field svg{width:15px;height:15px;stroke:var(--gray-4);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.search-field input{flex:1;border:none;background:transparent;font-size:13.5px;color:var(--gray-7);outline:none;font-family:var(--font-body)}
+.empty-state{text-align:center;padding:60px 20px}
+.empty-state svg{width:40px;height:40px;stroke:var(--gray-3);fill:none;stroke-width:1.5;margin:0 auto 12px}
+.empty-state h4{font-size:15px;font-weight:600;color:var(--gray-6);margin-bottom:5px}
+.empty-state p{font-size:13px;color:var(--gray-5)}
+
+/* ─── SKELETON ────────────────────────────────────── */
+.skeleton{background:linear-gradient(90deg,var(--gray-1) 25%,var(--gray-2) 50%,var(--gray-1) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:var(--r-lg)}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ─── STATS ───────────────────────────────────────── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:20px}
+.stat-card{background:var(--white);border:1px solid var(--gray-2);border-radius:var(--r-lg);padding:26px;text-align:center;transition:.22s}
+.stat-card:hover{border-color:var(--blue-3);transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.stat-card svg{width:26px;height:26px;stroke:var(--blue);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;margin:0 auto 10px}
+.stat-num{font-family:var(--font-head);font-size:40px;font-weight:800;color:var(--blue);line-height:1}
+.stat-lbl{font-size:13px;color:var(--gray-6);margin-top:5px;font-weight:500}
+
+/* ─── STEPS ───────────────────────────────────────── */
+.steps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:0;position:relative}
+.steps-grid::after{content:'';position:absolute;top:35px;left:12%;right:12%;height:1.5px;background:linear-gradient(90deg,var(--blue-lt),var(--blue-3),var(--blue-lt));z-index:0}
+.step{text-align:center;padding:28px 16px;position:relative;z-index:1}
+.step-num{width:70px;height:70px;border-radius:50%;background:var(--blue);color:#fff;font-family:var(--font-head);font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 4px 18px rgba(29,95,196,.32)}
+.step h3{font-family:var(--font-head);font-size:15px;font-weight:700;color:var(--navy);margin-bottom:7px}
+.step p{font-size:12.5px;color:var(--gray-6);line-height:1.6}
+
+/* ─── TESTIMONIALS ────────────────────────────────── */
+.testimonial-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
+.testimonial{background:var(--white);border:1px solid var(--gray-2);border-radius:var(--r-lg);padding:26px;transition:.22s}
+.testimonial:hover{border-color:var(--blue-3);box-shadow:var(--shadow-md)}
+.stars{color:#f59e0b;font-size:13px;letter-spacing:2px;margin-bottom:12px}
+.testimonial blockquote{font-size:13.5px;color:var(--gray-7);line-height:1.7;font-style:italic;margin-bottom:18px}
+.testimonial-author{display:flex;align-items:center;gap:10px}
+.author-avatar{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.author-name{font-weight:700;font-size:13.5px;color:var(--navy)}
+.author-role{font-size:11.5px;color:var(--gray-5)}
+
+/* ─── PARTNERS ────────────────────────────────────── */
+.partners-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.partner-card{background:var(--white);border:1px solid var(--gray-2);border-radius:var(--r-md);padding:18px 14px;display:flex;flex-direction:column;align-items:center;gap:7px;transition:.18s;cursor:default;text-align:center}
+.partner-card:hover{border-color:var(--blue-3);background:var(--blue-ltr)}
+.partner-card img{width:48px;height:48px;object-fit:cover;border-radius:var(--r-sm)}
+.partner-card span{font-size:12px;font-weight:600;color:var(--gray-7)}
+
+/* ─── FAQ ─────────────────────────────────────────── */
+.faq-stack{display:flex;flex-direction:column;gap:10px;max-width:740px}
+.faq-item{border:1px solid var(--gray-2);border-radius:var(--r-md);overflow:hidden}
+.faq-q{padding:16px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-weight:600;font-size:14.5px;color:var(--navy);transition:.15s;gap:12px}
+.faq-q:hover{background:var(--blue-ltr)}
+.faq-q svg{width:17px;height:17px;stroke:var(--blue);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;transition:.28s}
+.faq-item.open .faq-q svg{transform:rotate(180deg)}
+.faq-a{display:none;padding:0 18px 16px;font-size:13.5px;color:var(--gray-6);line-height:1.72}
+.faq-item.open .faq-a{display:block}
+
+/* ─── ABOUT SECTION ───────────────────────────────── */
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:52px;align-items:center}
+.about-img-wrap{border-radius:var(--r-2xl);overflow:hidden;box-shadow:var(--shadow-xl);aspect-ratio:4/3;background:var(--blue-lt)}
+.about-img-wrap img{width:100%;height:100%;object-fit:cover}
+.about-values{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px}
+.about-val{padding:14px;background:var(--blue-lt);border-radius:var(--r-md);border:1px solid #c5d9f9}
+.about-val svg{width:18px;height:18px;stroke:var(--blue);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;margin-bottom:5px}
+.about-val h4{font-weight:700;font-size:13px;color:var(--navy);margin-bottom:2px}
+.about-val p{font-size:12px;color:var(--gray-6)}
+
+/* ─── ANNOUNCEMENTS ───────────────────────────────── */
+.announce-stack{display:flex;flex-direction:column;gap:14px}
+.announce-card{background:var(--white);border-left:4px solid var(--blue);border-radius:var(--r-md);padding:16px 18px;box-shadow:var(--shadow-xs)}
+.announce-card.urgent{border-left-color:var(--red)}
+.announce-card.green{border-left-color:var(--green)}
+.announce-type{font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--blue);margin-bottom:3px;display:flex;align-items:center;gap:5px}
+.announce-type svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.announce-card.urgent .announce-type{color:var(--red)}
+.announce-card.green .announce-type{color:var(--green)}
+.announce-card h3{font-weight:700;font-size:14.5px;color:var(--navy);margin-bottom:3px}
+.announce-card p{font-size:13px;color:var(--gray-6);line-height:1.64}
+.announce-meta{font-size:11.5px;color:var(--gray-4);margin-top:7px}
+
+/* ─── EMERGENCY PANEL ─────────────────────────────── */
+.emergency-panel{background:linear-gradient(135deg,#1a0300,#5c0000 60%,#3b0a0a);border-radius:var(--r-2xl);padding:48px 32px;text-align:center;position:relative;overflow:hidden}
+.emergency-panel::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 12px,rgba(255,255,255,.015) 12px,rgba(255,255,255,.015) 24px)}
+.sos-btn{width:176px;height:176px;border-radius:50%;background:var(--red);border:6px solid rgba(255,255,255,.18);color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;margin:0 auto 36px;transition:.2s;position:relative;animation:sosPulse 2.2s ease-in-out infinite;font-family:var(--font-head)}
+@keyframes sosPulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.6),0 0 28px rgba(192,57,43,.28)}50%{box-shadow:0 0 0 22px rgba(192,57,43,0),0 0 56px rgba(192,57,43,.45)}}
+.sos-btn:hover{transform:scale(1.05)}
+.sos-btn:disabled{animation:none;opacity:.65}
+.sos-btn svg{width:36px;height:36px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;margin-bottom:2px}
+.sos-btn .sos-label{font-size:15px;font-weight:800;letter-spacing:1px}
+.sos-btn .sos-sub{font-size:10.5px;font-weight:500;opacity:.75;letter-spacing:.5px;font-family:var(--font-body)}
+.emg-cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(136px,1fr));gap:14px;max-width:620px;margin:0 auto}
+.emg-cat{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:var(--r-lg);padding:18px 12px;cursor:pointer;transition:.18s;color:#fff;text-align:center}
+.emg-cat:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.28)}
+.emg-cat svg{width:30px;height:30px;stroke:#fff;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin:0 auto 7px}
+.emg-cat-name{font-weight:700;font-size:13px;margin-bottom:3px}
+.emg-cat-num{font-size:21px;font-weight:800;font-family:var(--font-head);color:#90c0f8}
+.emg-cat-num a{color:inherit}
+
+/* ─── MAP ─────────────────────────────────────────── */
+#leafletMap{height:440px;border-radius:var(--r-xl);overflow:hidden;border:1px solid var(--gray-2);box-shadow:var(--shadow-md)}
+.leaflet-popup-content-wrapper{border-radius:var(--r-md);font-family:var(--font-body);box-shadow:var(--shadow-lg)}
+.map-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px}
+.map-legend-item{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--gray-6)}
+.legend-dot{width:11px;height:11px;border-radius:50%}
+
+/* ─── DASHBOARD ───────────────────────────────────── */
+.dash-layout{display:grid;grid-template-columns:210px 1fr;min-height:calc(100vh - 140px)}
+.dash-sidebar{background:var(--navy);padding:22px 0}
+.dash-nav{display:flex;align-items:center;gap:9px;padding:11px 18px;font-size:13.5px;font-weight:500;color:rgba(255,255,255,.65);cursor:pointer;transition:.14s;border-right:3px solid transparent}
+.dash-nav:hover,.dash-nav.active{background:rgba(255,255,255,.08);color:#fff}
+.dash-nav.active{border-right-color:#90c0f8}
+.dash-nav svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.dash-body{padding:30px;background:var(--gray-0)}
+.dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.dash-title{font-family:var(--font-head);font-size:24px;font-weight:800;color:var(--navy)}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:24px}
+.kpi{background:var(--white);border-radius:var(--r-lg);padding:18px;border:1px solid var(--gray-2)}
+.kpi-val{font-family:var(--font-head);font-size:30px;font-weight:800;color:var(--blue)}
+.kpi-lbl{font-size:12.5px;color:var(--gray-5);margin-top:3px;display:flex;align-items:center;gap:4px}
+.kpi-lbl svg{width:13px;height:13px;stroke:var(--gray-4);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.dash-table{background:var(--white);border-radius:var(--r-lg);border:1px solid var(--gray-2);overflow:auto}
+.dash-table table{width:100%;border-collapse:collapse;min-width:600px}
+.dash-table th{padding:11px 14px;text-align:left;font-size:11.5px;font-weight:700;color:var(--gray-5);text-transform:uppercase;letter-spacing:.5px;background:var(--gray-0);border-bottom:1px solid var(--gray-2)}
+.dash-table td{padding:13px 14px;font-size:13.5px;color:var(--gray-7);border-bottom:1px solid var(--gray-1)}
+.dash-table tr:last-child td{border-bottom:none}
+.dash-table tr:hover td{background:var(--gray-0)}
+.pill{padding:3px 10px;border-radius:100px;font-size:11.5px;font-weight:600}
+.pill-pending{background:var(--amber-lt);color:var(--amber)}
+.pill-approved{background:var(--green-lt);color:var(--green)}
+.pill-rejected{background:var(--red-lt);color:var(--red)}
+
+/* ─── REGISTER FORM ───────────────────────────────── */
+.form-card{background:var(--white);border:1px solid var(--gray-2);border-radius:var(--r-2xl);padding:38px;max-width:680px;margin:0 auto}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--gray-7);margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:11px 13px;border:1.5px solid var(--gray-2);border-radius:var(--r-md);font-size:13.5px;font-family:var(--font-body);color:var(--gray-9);outline:none;transition:.18s;background:var(--white)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue-3);box-shadow:0 0 0 3px rgba(29,95,196,.09)}
+.field textarea{resize:vertical;min-height:96px}
+.upload-zone{border:2px dashed var(--gray-3);border-radius:var(--r-md);padding:28px;text-align:center;cursor:pointer;transition:.18s}
+.upload-zone:hover{border-color:var(--blue-3);background:var(--blue-ltr)}
+.upload-zone svg{width:28px;height:28px;stroke:var(--gray-4);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin:0 auto 7px}
+.upload-zone p{font-size:13px;color:var(--gray-5)}
+.notice{background:var(--amber-lt);border-radius:var(--r-md);padding:11px 14px;font-size:12.5px;color:var(--amber);margin-bottom:18px;display:flex;align-items:flex-start;gap:7px}
+.notice svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;margin-top:1px}
+.form-submit{width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:var(--r-md);font-size:14.5px;font-weight:700;cursor:pointer;font-family:var(--font-head);transition:.18s;display:flex;align-items:center;justify-content:center;gap:7px}
+.form-submit svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.form-submit:hover{background:var(--blue-2)}
+.form-submit:disabled{opacity:.55;cursor:not-allowed}
+.field-error{font-size:11.5px;color:var(--red);margin-top:4px}
+
+/* ─── CONTACT ─────────────────────────────────────── */
+.contact-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:38px;align-items:start}
+.contact-info-stack{display:flex;flex-direction:column;gap:18px}
+.contact-info-card{display:flex;align-items:flex-start;gap:13px;padding:18px;background:var(--white);border:1px solid var(--gray-2);border-radius:var(--r-md)}
+.contact-info-icon{width:42px;height:42px;background:var(--blue-lt);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.contact-info-icon svg{width:19px;height:19px;stroke:var(--blue);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.contact-info-card h4{font-weight:700;font-size:13.5px;color:var(--navy);margin-bottom:2px}
+.contact-info-card p{font-size:13px;color:var(--gray-6)}
+
+/* ─── REWARDS ─────────────────────────────────────── */
+.rewards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px}
+.reward-card{background:var(--white);border:1px solid var(--gray-2);border-radius:var(--r-lg);padding:22px;text-align:center;transition:.22s}
+.reward-card:hover{border-color:var(--blue-3);transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.reward-card svg{width:38px;height:38px;stroke:var(--blue);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin:0 auto 10px}
+.reward-card h3{font-family:var(--font-head);font-size:14.5px;font-weight:700;color:var(--navy);margin-bottom:5px}
+.reward-card p{font-size:12.5px;color:var(--gray-6)}
+.reward-pts{display:inline-block;margin-top:9px;padding:3px 11px;background:var(--amber-lt);color:var(--amber);border-radius:100px;font-size:11.5px;font-weight:700}
+
+/* ─── AUTH MODAL ──────────────────────────────────── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.54);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:.22s;backdrop-filter:blur(3px)}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:var(--white);border-radius:var(--r-2xl);padding:36px;width:100%;max-width:420px;position:relative;transform:translateY(18px);transition:.26s;max-height:90vh;overflow-y:auto}
+.modal-bg.open .modal{transform:translateY(0)}
+.modal-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border:1px solid var(--gray-2);background:transparent;border-radius:var(--r-sm);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.modal-close svg{width:13px;height:13px;stroke:var(--gray-5);fill:none;stroke-width:2.5;stroke-linecap:round}
+.modal-logo{width:52px;height:52px;background:var(--blue);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+.modal-logo svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.modal-title{font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--navy);text-align:center;margin-bottom:4px}
+.modal-sub{font-size:13.5px;color:var(--gray-5);text-align:center;margin-bottom:24px}
+.auth-tabs{display:flex;background:var(--gray-1);border-radius:var(--r-md);padding:3px;gap:3px;margin-bottom:22px}
+.auth-tab{flex:1;padding:8px;border:none;background:transparent;border-radius:var(--r-sm);font-size:13px;font-weight:600;cursor:pointer;color:var(--gray-6);font-family:var(--font-body);transition:.15s}
+.auth-tab.active{background:var(--white);color:var(--blue);box-shadow:var(--shadow-xs)}
+.auth-error{font-size:12.5px;color:var(--red);text-align:center;margin-bottom:10px;padding:7px;background:var(--red-lt);border-radius:var(--r-sm)}
+
+/* ─── CHAT ────────────────────────────────────────── */
+.chat-fab{position:fixed;bottom:26px;right:26px;z-index:1500;width:58px;height:58px;border-radius:50%;background:var(--blue);border:none;color:#fff;cursor:pointer;box-shadow:var(--shadow-xl);transition:.22s;display:flex;align-items:center;justify-content:center}
+.chat-fab:hover{background:var(--blue-2);transform:scale(1.06)}
+.chat-fab svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.chat-badge{position:absolute;top:-2px;right:-2px;width:17px;height:17px;background:var(--red);border-radius:50%;border:2px solid #fff;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff}
+.chat-panel{position:fixed;bottom:96px;right:26px;z-index:1500;width:330px;background:var(--white);border-radius:var(--r-xl);box-shadow:var(--shadow-xl);overflow:hidden;transform:scale(.94) translateY(10px);opacity:0;pointer-events:none;transition:.26s cubic-bezier(.4,0,.2,1);transform-origin:bottom right}
+.chat-panel.open{transform:scale(1) translateY(0);opacity:1;pointer-events:all}
+.chat-head{background:var(--navy-2);padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+.chat-head-left{display:flex;align-items:center;gap:9px}
+.chat-avatar{width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative}
+.chat-avatar svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.chat-online{position:absolute;bottom:0;right:0;width:9px;height:9px;background:#4ade80;border-radius:50%;border:2px solid var(--navy-2)}
+.chat-head-name{font-weight:700;font-size:13.5px;color:#fff}
+.chat-head-status{font-size:11px;color:rgba(255,255,255,.6)}
+.chat-close-btn{background:rgba(255,255,255,.12);border:none;color:#fff;width:26px;height:26px;border-radius:var(--r-sm);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.chat-close-btn svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round}
+.chat-msgs{padding:14px;height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;background:var(--gray-0)}
+.chat-msg{max-width:86%;padding:9px 13px;border-radius:13px;font-size:13px;line-height:1.5}
+.chat-msg.bot{background:var(--white);border:1px solid var(--gray-2);color:var(--gray-7);align-self:flex-start;border-bottom-left-radius:3px}
+.chat-msg.user{background:var(--blue);color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
+.chat-input-row{padding:10px;border-top:1px solid var(--gray-2);display:flex;gap:7px}
+.chat-input-row input{flex:1;padding:9px 13px;border:1.5px solid var(--gray-2);border-radius:100px;font-size:13px;font-family:var(--font-body);outline:none}
+.chat-input-row input:focus{border-color:var(--blue-3)}
+.chat-send{width:34px;height:34px;border-radius:50%;background:var(--blue);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chat-send svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* ─── TOAST ───────────────────────────────────────── */
+.toast-wrap{position:fixed;top:78px;right:18px;z-index:3000;display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.toast{background:var(--white);border:1px solid var(--gray-2);border-radius:var(--r-md);padding:11px 14px;display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--gray-9);box-shadow:var(--shadow-lg);animation:toastIn .26s ease;min-width:270px;pointer-events:all}
+.toast svg{width:15px;height:15px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.toast.success{border-left:4px solid var(--green)}
+.toast.success svg{stroke:var(--green)}
+.toast.error{border-left:4px solid var(--red)}
+.toast.error svg{stroke:var(--red)}
+.toast.info{border-left:4px solid var(--blue)}
+.toast.info svg{stroke:var(--blue)}
+@keyframes toastIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+
+/* ─── FOOTER ──────────────────────────────────────── */
+.footer{background:var(--navy);color:rgba(255,255,255,.65);padding:56px 24px 0}
+.footer-inner{max-width:1260px;margin:0 auto}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:36px;margin-bottom:44px}
+.footer-brand{font-family:var(--font-head);color:#fff;font-size:18px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.footer-brand svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.footer-desc{font-size:13px;line-height:1.72;margin-bottom:18px}
+.footer-socials{display:flex;gap:7px}
+.social-icon{width:34px;height:34px;background:rgba(255,255,255,.08);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.16s}
+.social-icon:hover{background:rgba(255,255,255,.18)}
+.social-icon svg{width:15px;height:15px;stroke:rgba(255,255,255,.7);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.footer-col-h{font-weight:700;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:#fff;margin-bottom:14px}
+.footer-link{font-size:13px;padding:4px 0;cursor:pointer;transition:.14s;display:block;color:rgba(255,255,255,.58)}
+.footer-link:hover{color:#fff}
+.footer-bottom{border-top:1px solid rgba(255,255,255,.09);padding:18px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:12.5px}
+.footer-sub{background:rgba(0,0,0,.2);padding:9px 24px;text-align:center;font-size:11.5px;color:rgba(255,255,255,.38);border-top:1px solid rgba(255,255,255,.05)}
+
+/* ─── FIREBASE STATUS BAR ─────────────────────────── */
+.fb-bar{display:flex;align-items:center;gap:8px;padding:7px 20px;font-size:12.5px;font-weight:500;background:var(--amber-lt);color:var(--amber);border-bottom:1px solid #fbbf24}
+.fb-bar.ok{background:var(--green-lt);color:var(--green);border-color:#86efac}
+.fb-bar svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.fb-bar button{margin-left:auto;background:none;border:none;cursor:pointer;color:inherit;font-weight:700;font-size:13px}
+
+/* ─── MISC ────────────────────────────────────────── */
+.hidden{display:none!important}
+.text-muted{font-size:13px;color:var(--gray-5)}
+
+/* ─── RESPONSIVE ──────────────────────────────────── */
+@media(max-width:980px){
+  .about-grid,.contact-grid,.dash-layout{grid-template-columns:1fr}
+  .dash-sidebar{display:none}
+  .footer-grid{grid-template-columns:1fr 1fr}
+  .steps-grid::after{display:none}
+  .form-row{grid-template-columns:1fr}
+}
+@media(max-width:680px){
+  .nav-search-wrap,.btn-ghost{display:none}
+  .hero-ctas{flex-direction:column}
+  .hero-stats{gap:18px;flex-direction:column}
+  .footer-grid{grid-template-columns:1fr}
+  .about-values{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- FIREBASE STATUS -->
+<div class="fb-bar" id="fbBar">
+  <svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+  <span>Demo mode — add your Firebase credentials in the script to enable live auth and database.</span>
+  <button onclick="this.parentElement.style.display='none'">&#10005;</button>
+</div>
+
+<!-- TICKER -->
+<div class="ticker-bar" role="marquee" aria-label="Emergency contacts">
+  <div class="ticker-track">
+    <span class="ticker-item"><span class="ticker-sep"></span>AMBULANCE — Rescue 1122</span>
+    <span class="ticker-item"><span class="ticker-sep"></span>FIRE BRIGADE — 16 — 24/7 Emergency Response</span>
+    <span class="ticker-item"><span class="ticker-sep"></span>POLICE — 15 — Dial Immediately</span>
+    <span class="ticker-item"><span class="ticker-sep"></span>RESCUE 1122 — Active Across Sindh &amp; Punjab</span>
+    <span class="ticker-item"><span class="ticker-sep"></span>BLOOD DONATION — O+ Donors Needed at LUMHS Hyderabad</span>
+    <span class="ticker-item"><span class="ticker-sep"></span>AMBULANCE — Rescue 1122</span>
+    <span class="ticker-item"><span class="ticker-sep"></span>FIRE BRIGADE — 16 — 24/7 Emergency Response</span>
+    <span class="ticker-item"><span class="ticker-sep"></span>POLICE — 15 — Dial Immediately</span>
+    <span class="ticker-item"><span class="ticker-sep"></span>RESCUE 1122 — Active Across Sindh &amp; Punjab</span>
+    <span class="ticker-item"><span class="ticker-sep"></span>BLOOD DONATION — O+ Donors Needed at LUMHS Hyderabad</span>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="sidebar-brand">CivicConnect <span>Smart City Community Portal</span></div>
+    <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div>
+    <div class="sb-section">Navigation</div>
+    <div class="sb-item active" onclick="showTab('home');closeSidebar()"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</div>
+    <div class="sb-item" onclick="showTab('about');closeSidebar()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>About</div>
+    <div class="sb-item" onclick="showTab('services');closeSidebar()"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Services</div>
+    <div class="sb-item" onclick="showTab('emergency');closeSidebar()"><svg viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Emergency</div>
+    <div class="sb-item" onclick="showTab('dashboard');closeSidebar()"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">Services</div>
+    <div class="sb-item" onclick="setCategory('Hospital');showTab('services');closeSidebar()"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Hospitals</div>
+    <div class="sb-item" onclick="setCategory('Blood Bank');showTab('services');closeSidebar()"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-12V5l-8-3-8 3v5c0 8 8 12 8 12z"/></svg>Blood Banks</div>
+    <div class="sb-item" onclick="setCategory('NGO');showTab('services');closeSidebar()"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>NGOs</div>
+    <div class="sb-item" onclick="setCategory('Government');showTab('services');closeSidebar()"><svg viewBox="0 0 24 24"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>Government</div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">More</div>
+    <div class="sb-item" onclick="showTab('faq');closeSidebar()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>FAQ</div>
+    <div class="sb-item" onclick="showTab('contact');closeSidebar()"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.16 6.16l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>Contact</div>
+    <div class="sb-divider"></div>
+    <button class="sb-action btn-primary" onclick="openModal('login');closeSidebar()">Log In</button>
+    <button class="sb-action btn-ghost" style="margin-top:6px" onclick="openModal('signup');closeSidebar()">Sign Up Free</button>
+  </div>
+</div>
+
+<!-- NAVBAR -->
+<nav class="navbar" role="navigation" aria-label="Main navigation">
+  <div class="nav-wrap">
+    <button class="hamburger-btn" onclick="openSidebar()" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-brand" onclick="showTab('home')" role="link" tabindex="0">
+      <div class="nav-brand-mark">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <div class="nav-brand-text">CivicConnect <small>Smart City Portal</small></div>
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="nav-search-wrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="navSearchInput" placeholder="Search services..." oninput="globalSearch(this.value)" aria-label="Search" />
+    </div>
+    <div class="nav-btns" id="navUser">
+      <button class="btn btn-ghost" onclick="openModal('login')">Log In</button>
+      <button class="btn btn-primary" onclick="openModal('signup')">Sign Up Free</button>
+    </div>
+  </div>
+</nav>
+
+<!-- TAB BAR -->
+<div class="tab-bar" role="tablist">
+  <div class="tab-inner" id="tabInner">
+    <button class="tab-btn active" data-tab="home" onclick="showTab('home')" role="tab">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
+    </button>
+    <button class="tab-btn" data-tab="about" onclick="showTab('about')" role="tab">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>About
+    </button>
+    <button class="tab-btn" data-tab="services" onclick="showTab('services')" role="tab">
+      <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Services
+    </button>
+    <button class="tab-btn" data-tab="emergency" onclick="showTab('emergency')" role="tab">
+      <svg viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Emergency
+    </button>
+    <button class="tab-btn" data-tab="register" onclick="showTab('register')" role="tab">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Register Service
+    </button>
+    <button class="tab-btn" data-tab="announcements" onclick="showTab('announcements')" role="tab">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Announcements
+    </button>
+    <button class="tab-btn" data-tab="faq" onclick="showTab('faq')" role="tab">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>FAQ
+    </button>
+    <button class="tab-btn" data-tab="contact" onclick="showTab('contact')" role="tab">
+      <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72"/></svg>Contact
+    </button>
+    <button class="tab-btn" data-tab="dashboard" onclick="showTab('dashboard')" role="tab">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════ HOME TAB ═══════════ -->
+<div id="tab-home">
+
+  <!-- HERO -->
+  <section class="hero" aria-label="Hero section">
+    <div class="hero-img" role="img" aria-label="Smart city aerial view"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-grid-bg"></div>
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="hero-pulse"></span>
+        Live — Serving Communities Across Pakistan
+      </div>
+      <h1 class="hero-title">Bridging <span class="accent">Technology</span><br>and Community Service</h1>
+      <p class="hero-sub">A unified Smart City platform connecting citizens with hospitals, NGOs, blood banks, government offices, and emergency services — all in one place, available 24/7.</p>
+      <div class="hero-search-bar" role="search">
+        <input type="text" id="heroInput" placeholder="Search hospitals, blood banks, NGOs..." aria-label="Search services" oninput="handleHeroSearch(this.value)" />
+        <button class="hero-search-btn" onclick="goToServices()" aria-label="Search">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+      </div>
+      <div class="hero-ctas">
+        <button class="btn btn-primary btn-lg" onclick="showTab('services')">Explore Services</button>
+        <button class="btn btn-danger btn-lg" onclick="showTab('emergency')">Emergency Help</button>
+        <button class="btn btn-lg" style="background:rgba(255,255,255,.1);color:#fff;border:1.5px solid rgba(255,255,255,.3)" onclick="openModal('signup')">Get Started Free</button>
+      </div>
+      <div class="hero-stats">
+        <div><div class="hero-stat-num">250+</div><div class="hero-stat-lbl">Hospitals<br>Registered</div></div>
+        <div><div class="hero-stat-num">180+</div><div class="hero-stat-lbl">NGOs &amp;<br>Welfare Centers</div></div>
+        <div><div class="hero-stat-num">45+</div><div class="hero-stat-lbl">Blood Banks<br>Active</div></div>
+        <div><div class="hero-stat-num">12K+</div><div class="hero-stat-lbl">Citizens<br>Served</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INTRO -->
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-label">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        What is CivicConnect
+      </div>
+      <h2 class="section-title">A Complete <span class="hl">Civic Services</span> Ecosystem</h2>
+      <p class="section-desc">Pakistan's first unified Smart City community platform bringing together emergency services, healthcare, NGOs, government offices, and civic resources into one intelligent portal.</p>
+      <div class="intro-grid">
+        <div class="intro-card">
+          <div class="intro-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <h3>Purpose and Mission</h3>
+          <p>To empower every citizen with instant access to vital community services, emergency support, and public welfare programs — eliminating barriers between people and the help they need.</p>
+        </div>
+        <div class="intro-card">
+          <div class="intro-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+          <h3>Smart City Integration</h3>
+          <p>Built on Smart City governance principles, integrating real-time data from hospitals, rescue services, and government bodies to provide accurate, up-to-date civic information.</p>
+        </div>
+        <div class="intro-card">
+          <div class="intro-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+          <h3>Community Support</h3>
+          <p>Connecting volunteers, blood donors, NGO workers, and community leaders to create a resilient network of civic helpers who respond to both daily needs and emergencies.</p>
+        </div>
+        <div class="intro-card">
+          <div class="intro-icon"><svg viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <h3>Emergency Response</h3>
+          <p>One-tap SOS with live GPS location sharing, direct connection to ambulance, police, fire brigade, and rescue services — reducing critical response times significantly.</p>
+        </div>
+        <div class="intro-card">
+          <div class="intro-icon"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+          <h3>Transparent Governance</h3>
+          <p>All registered services undergo admin verification before public listing. Citizens can report inaccuracies, ensuring the platform maintains high data quality and public trust.</p>
+        </div>
+        <div class="intro-card">
+          <div class="intro-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-12V5l-8-3-8 3v5c0 8 8 12 8 12z"/></svg></div>
+          <h3>Social Impact</h3>
+          <p>By digitizing civic infrastructure, we reduce emergency response times, increase blood donation rates, and improve access to welfare programs for underserved communities.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="section section-bg">
+    <div class="section-inner">
+      <div class="section-label"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Process</div>
+      <h2 class="section-title">How <span class="hl">CivicConnect</span> Works</h2>
+      <p class="section-desc">Getting started takes only a few minutes. Here is how to make the most of your community portal.</p>
+      <div class="steps-grid">
+        <div class="step"><div class="step-num">1</div><h3>Create Account</h3><p>Register with your name, phone, and email. Your verified account unlocks all portal features instantly.</p></div>
+        <div class="step"><div class="step-num">2</div><h3>Search Services</h3><p>Browse or search for hospitals, blood banks, NGOs, and government offices near your location.</p></div>
+        <div class="step"><div class="step-num">3</div><h3>Register Organization</h3><p>Own a welfare center or NGO? Register your organization for free — admin-approved for quality assurance.</p></div>
+        <div class="step"><div class="step-num">4</div><h3>Request Help</h3><p>Use the SOS button to request emergency assistance with your live GPS location automatically sent.</p></div>
+        <div class="step"><div class="step-num">5</div><h3>Stay Informed</h3><p>Receive real-time community announcements, blood donation alerts, and civic updates in your city.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATISTICS -->
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-label"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Impact</div>
+      <h2 class="section-title">Platform <span class="hl">Statistics</span></h2>
+      <p class="section-desc">Real numbers. Real impact. Growing every day across Pakistan.</p>
+      <div class="stats-grid">
+        <div class="stat-card"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg><div class="stat-num">250+</div><div class="stat-lbl">Hospitals Registered</div></div>
+        <div class="stat-card"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><div class="stat-num">180+</div><div class="stat-lbl">NGOs Active</div></div>
+        <div class="stat-card"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-12V5l-8-3-8 3v5c0 8 8 12 8 12z"/></svg><div class="stat-num">45+</div><div class="stat-lbl">Blood Banks</div></div>
+        <div class="stat-card"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><div class="stat-num">32</div><div class="stat-lbl">Emergency Units</div></div>
+        <div class="stat-card"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg><div class="stat-num">2,400+</div><div class="stat-lbl">Active Volunteers</div></div>
+        <div class="stat-card"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/></svg><div class="stat-num">12K+</div><div class="stat-lbl">Citizens Served</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="section section-bg">
+    <div class="section-inner">
+      <div class="section-label"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Testimonials</div>
+      <h2 class="section-title">What <span class="hl">Citizens</span> Say</h2>
+      <div class="testimonial-grid">
+        <div class="testimonial"><div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote>"CivicConnect helped me find a blood donor in under 20 minutes when my father needed emergency surgery. This platform literally saved his life. Truly incredible service."</blockquote><div class="testimonial-author"><div class="author-avatar">AK</div><div><div class="author-name">Ahmed Karim</div><div class="author-role">Citizen, Karachi</div></div></div></div>
+        <div class="testimonial"><div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote>"As an NGO director, registering our welfare center was seamless. The admin approval gave us instant credibility. Our volunteer base has grown three times since joining."</blockquote><div class="testimonial-author"><div class="author-avatar">SZ</div><div><div class="author-name">Sara Zahid</div><div class="author-role">NGO Director, Lahore</div></div></div></div>
+        <div class="testimonial"><div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote>"The emergency SOS feature connected us to Rescue 1122 in seconds during a road accident. The live location sharing meant help arrived faster than any phone call could."</blockquote><div class="testimonial-author"><div class="author-avatar">MR</div><div><div class="author-name">Muhammad Raza</div><div class="author-role">Volunteer, Islamabad</div></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PARTNERS -->
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-label"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Partners</div>
+      <h2 class="section-title">Trusted <span class="hl">Partner</span> Organizations</h2>
+      <div class="partners-grid">
+        <div class="partner-card"><img src="https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=96&h=96&fit=crop&q=80" alt="Hospital" /><span>PIMS Hospital</span></div>
+        <div class="partner-card"><img src="https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=96&h=96&fit=crop&q=80" alt="Rescue" /><span>Rescue 1122</span></div>
+        <div class="partner-card"><img src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=96&h=96&fit=crop&q=80" alt="NGO" /><span>Edhi Foundation</span></div>
+        <div class="partner-card"><img src="https://images.unsplash.com/photo-1568992687947-868a62a9f521?w=96&h=96&fit=crop&q=80" alt="Government" /><span>NADRA</span></div>
+        <div class="partner-card"><img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=96&h=96&fit=crop&q=80" alt="Red Crescent" /><span>Pakistan Red Crescent</span></div>
+        <div class="partner-card"><img src="https://images.unsplash.com/photo-1599493782272-8ee5b4ca21f7?w=96&h=96&fit=crop&q=80" alt="Welfare" /><span>Saylani Welfare</span></div>
+        <div class="partner-card"><img src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=96&h=96&fit=crop&q=80" alt="Education" /><span>Akhuwat Foundation</span></div>
+        <div class="partner-card"><img src="https://images.unsplash.com/photo-1461280360983-bd101c1b8bc4?w=96&h=96&fit=crop&q=80" alt="Fire" /><span>Fire Rescue Services</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REWARDS -->
+  <section class="section section-bg">
+    <div class="section-inner">
+      <div class="section-label"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>Rewards</div>
+      <h2 class="section-title">Volunteer <span class="hl">Badges</span> and Achievements</h2>
+      <p class="section-desc">Earn recognition for your civic contributions. Every action counts toward building a stronger community.</p>
+      <div class="rewards-grid">
+        <div class="reward-card"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-12V5l-8-3-8 3v5c0 8 8 12 8 12z"/></svg><h3>Blood Hero</h3><p>Donated blood 3 or more times through a registered blood bank</p><div class="reward-pts">500 pts</div></div>
+        <div class="reward-card"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><h3>First Responder</h3><p>Assisted in 5 or more verified emergency situations</p><div class="reward-pts">800 pts</div></div>
+        <div class="reward-card"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg><h3>Community Pillar</h3><p>Volunteered 20 or more hours through registered organizations</p><div class="reward-pts">600 pts</div></div>
+        <div class="reward-card"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><h3>Civic Champion</h3><p>All-round civic contributor across multiple service categories</p><div class="reward-pts">1,200 pts</div></div>
+        <div class="reward-card"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg><h3>Awareness Leader</h3><p>Shared 10 or more verified community alerts and announcements</p><div class="reward-pts">300 pts</div></div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- end home tab -->
+
+<!-- ═══════════ ABOUT TAB ═══════════ -->
+<div id="tab-about" class="hidden">
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>About Us</div>
+      <h2 class="section-title">Our <span class="hl">Mission</span> and Vision</h2>
+      <div class="about-grid">
+        <div>
+          <p style="font-size:15.5px;color:var(--gray-6);line-height:1.78;margin-bottom:20px">CivicConnect was born from a simple but powerful idea: every citizen deserves instant, reliable access to community services — especially in moments of crisis. We set out to build the infrastructure that makes this possible across Pakistan.</p>
+          <p style="font-size:15.5px;color:var(--gray-6);line-height:1.78;margin-bottom:20px">Our platform bridges the gap between government services, nonprofit organizations, healthcare providers, and ordinary citizens — creating a unified ecosystem of civic support that operates 24 hours a day, 365 days a year.</p>
+          <p style="font-size:15.5px;color:var(--gray-6);line-height:1.78;margin-bottom:30px">From registering your local blood bank to activating a citywide emergency response, CivicConnect is designed to scale with the needs of Pakistan's growing urban communities.</p>
+          <div class="about-values">
+            <div class="about-val"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><h4>Mission</h4><p>Connect every citizen to vital civic services</p></div>
+            <div class="about-val"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><h4>Vision</h4><p>A digitally empowered civic society</p></div>
+            <div class="about-val"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><h4>Speed</h4><p>Sub-minute emergency connections</p></div>
+            <div class="about-val"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><h4>Trust</h4><p>Admin-verified services only</p></div>
+          </div>
+        </div>
+        <div class="about-img-wrap">
+          <img src="smart-city.jpg"
+               onerror="this.src='https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=900&q=85&auto=format&fit=crop'"
+               alt="Smart City — CivicConnect" />
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ SERVICES TAB ═══════════ -->
+<div id="tab-services" class="hidden">
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-label"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Services Directory</div>
+      <h2 class="section-title">Find <span class="hl">Services</span> Near You</h2>
+      <div class="search-field">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="svcSearch" placeholder="Search by name, city, or description..." oninput="filterServices()" aria-label="Filter services" />
+      </div>
+      <div class="filter-row" id="filterRow">
+        <div class="chip active" data-cat="All" onclick="setCategory('All',this)">
+          <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>All Services
+        </div>
+        <div class="chip" data-cat="Hospital" onclick="setCategory('Hospital',this)">
+          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Hospitals
+        </div>
+        <div class="chip" data-cat="Blood Bank" onclick="setCategory('Blood Bank',this)">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-12V5l-8-3-8 3v5c0 8 8 12 8 12z"/></svg>Blood Banks
+        </div>
+        <div class="chip" data-cat="NGO" onclick="setCategory('NGO',this)">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>NGOs
+        </div>
+        <div class="chip" data-cat="Welfare" onclick="setCategory('Welfare',this)">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>Welfare
+        </div>
+        <div class="chip" data-cat="Government" onclick="setCategory('Government',this)">
+          <svg viewBox="0 0 24 24"><line x1="3" y1="22" x2="21" y2="22"/><polygon points="12 2 20 7 4 7"/></svg>Government
+        </div>
+        <div class="chip" data-cat="Rescue" onclick="setCategory('Rescue',this)">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Rescue
+        </div>
+      </div>
+      <div id="svcLoading" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:22px">
+        <div class="skeleton" style="height:340px"></div>
+        <div class="skeleton" style="height:340px"></div>
+        <div class="skeleton" style="height:340px"></div>
+      </div>
+      <div id="svcGrid" class="services-grid hidden"></div>
+      <div id="svcEmpty" class="hidden">
+        <div class="empty-state"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><h4>No services found</h4><p>Try a different search term or category</p></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ EMERGENCY TAB ═══════════ -->
+<div id="tab-emergency" class="hidden">
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-label"><svg viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/></svg>Emergency Response</div>
+
+      <div class="emergency-panel" aria-label="Emergency SOS panel">
+        <h2 style="font-family:var(--font-head);color:#fff;font-size:26px;font-weight:800;margin-bottom:7px">Emergency SOS System</h2>
+        <p style="color:rgba(255,255,255,.65);margin-bottom:36px;font-size:14.5px">Press SOS to instantly alert emergency services with your live GPS coordinates</p>
+        <button class="sos-btn" id="sosBtn" onclick="triggerSOS()" aria-label="Send SOS emergency alert">
+          <svg viewBox="0 0 24 24" style="margin-bottom:4px"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span class="sos-label">SOS</span>
+          <span class="sos-sub">EMERGENCY</span>
+        </button>
+        <p style="color:rgba(255,255,255,.42);font-size:12.5px;margin-bottom:28px" id="sosStatus">Tap to send your location to emergency services</p>
+        <div class="emg-cats">
+          <div class="emg-cat" onclick="callService('Ambulance','1122')" role="button" tabindex="0">
+            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <div class="emg-cat-name">Ambulance</div>
+            <div class="emg-cat-num"><a href="tel:1122">1122</a></div>
+          </div>
+          <div class="emg-cat" onclick="callService('Fire Brigade','16')" role="button" tabindex="0">
+            <svg viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
+            <div class="emg-cat-name">Fire Brigade</div>
+            <div class="emg-cat-num"><a href="tel:16">16</a></div>
+          </div>
+          <div class="emg-cat" onclick="callService('Police','15')" role="button" tabindex="0">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-12V5l-8-3-8 3v5c0 8 8 12 8 12z"/></svg>
+            <div class="emg-cat-name">Police</div>
+            <div class="emg-cat-num"><a href="tel:15">15</a></div>
+          </div>
+          <div class="emg-cat" onclick="callService('Rescue','1122')" role="button" tabindex="0">
+            <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            <div class="emg-cat-name">Rescue 1122</div>
+            <div class="emg-cat-num"><a href="tel:1122">1122</a></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAP -->
+      <div style="margin-top:40px">
+        <h3 style="font-family:var(--font-head);font-size:22px;font-weight:700;color:var(--navy);margin-bottom:8px">Live Services Map</h3>
+        <p style="font-size:13.5px;color:var(--gray-6);margin-bottom:14px">Interactive map showing hospitals, blood banks, NGOs, and emergency services across Pakistan. Click any marker for details.</p>
+        <div id="leafletMap"></div>
+        <div class="map-legend">
+          <div class="map-legend-item"><div class="legend-dot" style="background:#1d5fc4"></div>Hospitals</div>
+          <div class="map-legend-item"><div class="legend-dot" style="background:#c0392b"></div>Blood Banks</div>
+          <div class="map-legend-item"><div class="legend-dot" style="background:#1a7f4b"></div>NGOs</div>
+          <div class="map-legend-item"><div class="legend-dot" style="background:#b45309"></div>Government</div>
+          <div class="map-legend-item"><div class="legend-dot" style="background:#7c3aed"></div>Welfare</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ REGISTER TAB ═══════════ -->
+<div id="tab-register" class="hidden">
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-label"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Register</div>
+      <h2 class="section-title">Register Your <span class="hl">Organization</span></h2>
+      <p class="section-desc">Submit your organization for listing. Requires admin approval before going live on the portal.</p>
+      <div class="form-card">
+        <div class="form-row">
+          <div class="field"><label for="rf_name">Organization Name <span style="color:var(--red)">*</span></label><input id="rf_name" type="text" placeholder="e.g. City Welfare Hospital" /><div class="field-error hidden" id="rf_name_err">Required</div></div>
+          <div class="field"><label for="rf_owner">Owner / Contact Name <span style="color:var(--red)">*</span></label><input id="rf_owner" type="text" placeholder="Full name" /><div class="field-error hidden" id="rf_owner_err">Required</div></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label for="rf_cat">Category <span style="color:var(--red)">*</span></label><select id="rf_cat"><option>Hospital</option><option>Blood Bank</option><option>NGO</option><option>Welfare Center</option><option>Government Office</option><option>Ambulance Service</option><option>Rescue Service</option></select></div>
+          <div class="field"><label for="rf_phone">Phone Number <span style="color:var(--red)">*</span></label><input id="rf_phone" type="tel" placeholder="+92 300 0000000" /><div class="field-error hidden" id="rf_phone_err">Required</div></div>
+        </div>
+        <div class="field"><label for="rf_city">City <span style="color:var(--red)">*</span></label><input id="rf_city" type="text" placeholder="e.g. Hyderabad" /></div>
+        <div class="field"><label for="rf_address">Complete Address <span style="color:var(--red)">*</span></label><input id="rf_address" type="text" placeholder="Full address with area" /><div class="field-error hidden" id="rf_address_err">Required</div></div>
+        <div class="form-row">
+          <div class="field"><label for="rf_lat">Latitude (GPS)</label><input id="rf_lat" type="text" placeholder="25.3960" /></div>
+          <div class="field"><label for="rf_lng">Longitude (GPS)</label><input id="rf_lng" type="text" placeholder="68.3578" /></div>
+        </div>
+        <div class="field"><label for="rf_desc">Description <span style="color:var(--red)">*</span></label><textarea id="rf_desc" placeholder="Describe your services, operating hours, and any special notes..."></textarea><div class="field-error hidden" id="rf_desc_err">Required</div></div>
+        <div class="field"><label>Organization Logo / Image</label>
+          <div class="upload-zone" onclick="toast('File upload requires Firebase Storage setup','info')">
+            <svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+            <p>Click to upload logo or facility image<br><span style="font-size:11.5px;color:var(--gray-4)">PNG or JPG, max 5 MB — requires Firebase Storage</span></p>
+          </div>
+        </div>
+        <div class="notice"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Your registration will be reviewed by the admin team. Status: <strong>Pending</strong> until approved before public listing.</div>
+        <button class="form-submit" id="regBtn" onclick="submitRegistration()">
+          <svg viewBox="0 0 24 24"><polyline points="22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Submit Registration
+        </button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ ANNOUNCEMENTS TAB ═══════════ -->
+<div id="tab-announcements" class="hidden">
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-label"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Live Updates</div>
+      <h2 class="section-title">Community <span class="hl">Announcements</span></h2>
+      <p class="section-desc">Real-time updates from hospitals, government bodies, NGOs, and emergency services.</p>
+      <div class="announce-stack">
+        <div class="announce-card urgent"><div class="announce-type"><svg viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/></svg>Urgent — Blood Alert</div><h3>O+ Blood Donors Needed — LUMHS Hyderabad</h3><p>Three patients in critical condition require O+ blood immediately. Contact LUMHS blood bank or visit in person. Donors receive priority healthcare card.</p><div class="announce-meta">2 hours ago &middot; Posted by LUMHS Administration</div></div>
+        <div class="announce-card"><div class="announce-type"><svg viewBox="0 0 24 24"><line x1="3" y1="22" x2="21" y2="22"/><polygon points="12 2 20 7 4 7"/></svg>Government Announcement</div><h3>Free Health Camp — Hyderabad Community Center</h3><p>The district government is organizing a free health screening camp this Saturday from 9 AM to 5 PM. Services include blood pressure, diabetes, eye tests, and dental checkups. No registration required.</p><div class="announce-meta">5 hours ago &middot; Posted by District Health Office</div></div>
+        <div class="announce-card green"><div class="announce-type"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>NGO Campaign</div><h3>Saylani Welfare Winter Drive — Blanket Distribution Begins</h3><p>Saylani Welfare Trust is distributing 5,000 blankets across 12 distribution points in Hyderabad. Beneficiary registration open online through CivicConnect.</p><div class="announce-meta">1 day ago &middot; Posted by Saylani Welfare Trust</div></div>
+        <div class="announce-card urgent"><div class="announce-type"><svg viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/></svg>City Alert</div><h3>Road Closure — Autobahn Road Hyderabad Emergency Maintenance</h3><p>Autobahn Road between Qasimabad and Unit 9 is closed for emergency infrastructure repair. Estimated completion: 36 hours. Use alternative routes via Latifabad Expressway.</p><div class="announce-meta">3 hours ago &middot; Posted by Hyderabad Traffic Police</div></div>
+        <div class="announce-card"><div class="announce-type"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>Welfare Update</div><h3>Akhuwat Foundation — Interest-Free Loan Applications Open</h3><p>Akhuwat Foundation is accepting applications for interest-free business microloans up to PKR 100,000 for small business owners. Visit nearest Akhuwat center with CNIC and utility bill.</p><div class="announce-meta">2 days ago &middot; Posted by Akhuwat Foundation</div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ FAQ TAB ═══════════ -->
+<div id="tab-faq" class="hidden">
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Help Center</div>
+      <h2 class="section-title">Frequently Asked <span class="hl">Questions</span></h2>
+      <div class="faq-stack">
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How do I register my organization on CivicConnect?<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">Go to the Register Service tab and fill out the complete form including your organization name, category, contact details, address, and description. Upload your logo. Our admin team reviews your submission within 24 to 48 hours. Once approved, your organization appears in the services directory with a verification badge.</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How does the Emergency SOS system work?<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">When you press the SOS button, the system immediately captures your browser's live GPS coordinates using the Geolocation API and submits an emergency request to Firestore. The request includes your name, emergency type, exact latitude and longitude, and a timestamp. Admin staff and nearby emergency units are notified in real time.</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How does the live map integration work?<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">The Emergency tab features a live Leaflet.js map showing all registered services as color-coded markers — blue for hospitals, red for blood banks, green for NGOs. Click any marker to see the service name, phone number, and address. Location permission is requested for nearest-service detection.</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How does the admin approval system work?<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">All service registrations start with a Pending status in Firestore. Our admin team verifies the organization's legitimacy by checking registration documents, contacting the phone number, and confirming the address. Approved services receive a blue verification badge visible to all users on the platform.</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How do I find blood donors near me?<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">Filter the services directory by Blood Bank to see all registered blood banks with contact numbers and availability status. For urgent needs, registered donors matching your required blood type in your city receive push notifications. You can also call 1122 for emergency blood coordination.</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Is CivicConnect free to use?<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">Yes, CivicConnect is completely free for citizens. Searching services, using emergency features, receiving announcements, and earning volunteer badges are all free. Organizations can also register their services for free. The platform is supported by government partnerships and NGO collaborations.</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How do I earn volunteer badges and rewards?<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">Badges are earned automatically based on civic activities logged on the platform. Donate blood through a registered partner blood bank, volunteer through an NGO partner, assist in emergency response, or share community alerts to accumulate points. Points unlock badge tiers visible on your public profile.</div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ CONTACT TAB ═══════════ -->
+<div id="tab-contact" class="hidden">
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-label"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81"/></svg>Get In Touch</div>
+      <h2 class="section-title">Contact <span class="hl">Us</span></h2>
+      <div class="contact-grid">
+        <div class="contact-info-stack">
+          <div class="contact-info-card"><div class="contact-info-icon"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><h4>Office Address</h4><p>CivicConnect HQ, Autobahn Road, Hyderabad, Sindh, Pakistan</p></div></div>
+          <div class="contact-info-card"><div class="contact-info-icon"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72"/></svg></div><div><h4>Phone</h4><p><a href="tel:+92221234567" style="color:var(--blue)">+92 22 1234567</a></p></div></div>
+          <div class="contact-info-card"><div class="contact-info-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div><h4>Email</h4><p><a href="mailto:support@civicconnect.pk" style="color:var(--blue)">support@civicconnect.pk</a></p></div></div>
+          <div class="contact-info-card"><div class="contact-info-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><h4>Support Hours</h4><p>24/7 Emergency Line<br>Mon–Fri 9 AM–6 PM General Support</p></div></div>
+        </div>
+        <div class="form-card" style="padding:28px">
+          <h3 style="font-family:var(--font-head);font-size:18px;font-weight:700;color:var(--navy);margin-bottom:20px">Send Us a Message</h3>
+          <div class="form-row">
+            <div class="field"><label for="cf_name">Full Name</label><input id="cf_name" type="text" placeholder="Your name" /></div>
+            <div class="field"><label for="cf_email">Email Address</label><input id="cf_email" type="email" placeholder="email@example.com" /></div>
+          </div>
+          <div class="field"><label for="cf_phone">Phone Number</label><input id="cf_phone" type="tel" placeholder="+92 300 0000000" /></div>
+          <div class="field"><label for="cf_subject">Subject</label><input id="cf_subject" type="text" placeholder="How can we help?" /></div>
+          <div class="field"><label for="cf_msg">Message</label><textarea id="cf_msg" placeholder="Write your message here..." style="min-height:130px"></textarea></div>
+          <button class="form-submit" id="contactBtn" onclick="submitContact()">
+            <svg viewBox="0 0 24 24"><polyline points="22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send Message
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ DASHBOARD TAB ═══════════ -->
+<div id="tab-dashboard" class="hidden">
+  <div class="dash-layout">
+    <div class="dash-sidebar">
+      <div style="padding:18px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:10px">
+        <div style="font-family:var(--font-head);color:#fff;font-size:14.5px;font-weight:700" id="dashName">Admin Panel</div>
+        <div style="font-size:11.5px;color:rgba(255,255,255,.42);margin-top:2px">CivicConnect Portal</div>
+      </div>
+      <div class="dash-nav active" onclick="activateDash(this)"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Overview</div>
+      <div class="dash-nav" onclick="activateDash(this)"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Manage Services</div>
+      <div class="dash-nav" onclick="activateDash(this)"><svg viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/></svg>Emergencies</div>
+      <div class="dash-nav" onclick="activateDash(this)"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/></svg>Messages</div>
+      <div class="dash-nav" onclick="activateDash(this)"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>Announcements</div>
+    </div>
+    <div class="dash-body">
+      <div class="dash-header">
+        <div class="dash-title" id="dashViewTitle">Portal Overview</div>
+        <button class="btn btn-primary btn-sm" onclick="toast('Report exported successfully','success')">Export Report</button>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-val">250</div><div class="kpi-lbl"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Total Services</div></div>
+        <div class="kpi"><div class="kpi-val" id="kpiUsers">12,430</div><div class="kpi-lbl"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Registered Users</div></div>
+        <div class="kpi"><div class="kpi-val" id="kpiEmg">47</div><div class="kpi-lbl"><svg viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/></svg>Emergency Requests</div></div>
+        <div class="kpi"><div class="kpi-val">18</div><div class="kpi-lbl"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Pending Approvals</div></div>
+      </div>
+      <div class="dash-table">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--gray-2)"><strong style="font-size:14.5px;color:var(--navy)">Recent Service Registrations</strong></div>
+        <table>
+          <thead><tr><th>Organization</th><th>Category</th><th>City</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>City Care Hospital</td><td>Hospital</td><td>Hyderabad</td><td><span class="pill pill-pending">Pending</span></td><td><button class="btn btn-primary btn-sm" onclick="approveRow(this)">Approve</button></td></tr>
+            <tr><td>Helping Hands NGO</td><td>NGO</td><td>Lahore</td><td><span class="pill pill-approved">Approved</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+            <tr><td>Punjab Blood Bank</td><td>Blood Bank</td><td>Lahore</td><td><span class="pill pill-approved">Approved</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+            <tr><td>Karachi Welfare Trust</td><td>Welfare</td><td>Karachi</td><td><span class="pill pill-pending">Pending</span></td><td><button class="btn btn-primary btn-sm" onclick="approveRow(this)">Approve</button></td></tr>
+            <tr><td>Federal Relief Office</td><td>Government</td><td>Islamabad</td><td><span class="pill pill-approved">Approved</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer" id="mainFooter" role="contentinfo">
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>CivicConnect</div>
+        <p class="footer-desc">Pakistan's premier Smart City civic services portal — connecting citizens with hospitals, NGOs, blood banks, government offices, and emergency services since 2024.</p>
+        <div class="footer-socials">
+          <div class="social-icon"><svg viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg></div>
+          <div class="social-icon"><svg viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg></div>
+          <div class="social-icon"><svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></div>
+          <div class="social-icon"><svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 00-1.94-1.96C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 00-1.94 1.96A29 29 0 001 12a29 29 0 00.46 5.58A2.78 2.78 0 003.4 19.54C5.12 20 12 20 12 20s6.88 0 8.6-.46a2.78 2.78 0 001.94-1.96A29 29 0 0023 12a29 29 0 00-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg></div>
+        </div>
+      </div>
+      <div>
+        <div class="footer-col-h">Services</div>
+        <div class="footer-link" onclick="setCategory('Hospital');showTab('services')">Hospitals</div>
+        <div class="footer-link" onclick="setCategory('Blood Bank');showTab('services')">Blood Banks</div>
+        <div class="footer-link" onclick="setCategory('NGO');showTab('services')">NGOs</div>
+        <div class="footer-link" onclick="setCategory('Welfare');showTab('services')">Welfare Centers</div>
+        <div class="footer-link" onclick="setCategory('Government');showTab('services')">Government Offices</div>
+      </div>
+      <div>
+        <div class="footer-col-h">Platform</div>
+        <div class="footer-link" onclick="showTab('about')">About Us</div>
+        <div class="footer-link" onclick="showTab('register')">Register Service</div>
+        <div class="footer-link" onclick="showTab('emergency')">Emergency SOS</div>
+        <div class="footer-link" onclick="showTab('faq')">FAQ and Help</div>
+        <div class="footer-link" onclick="showTab('dashboard')">Admin Dashboard</div>
+      </div>
+      <div>
+        <div class="footer-col-h">Emergency</div>
+        <div class="footer-link"><a href="tel:1122" style="color:inherit">Ambulance: 1122</a></div>
+        <div class="footer-link"><a href="tel:16" style="color:inherit">Fire Brigade: 16</a></div>
+        <div class="footer-link"><a href="tel:15" style="color:inherit">Police: 15</a></div>
+        <div class="footer-link" onclick="showTab('contact')">Contact Us</div>
+        <div class="footer-link"><a href="mailto:support@civicconnect.pk" style="color:inherit">support@civicconnect.pk</a></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 CivicConnect &mdash; Empowering Communities. All Rights Reserved.</span>
+      <div style="display:flex;gap:18px">
+        <span class="footer-link" style="display:inline">Privacy Policy</span>
+        <span class="footer-link" style="display:inline">Terms of Service</span>
+      </div>
+    </div>
+  </div>
+  <div class="footer-sub">
+    Project by: <strong style="color:rgba(255,255,255,.6)">Fasiha Afridi</strong> | HITMS Software Engineering &nbsp;&middot;&nbsp; Powered by CivicConnect Team
+  </div>
+</footer>
+
+<!-- AUTH MODAL -->
+<div class="modal-bg" id="authModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="modal-logo">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="loginTab" onclick="switchAuth('login')">Log In</button>
+      <button class="auth-tab" id="signupTab" onclick="switchAuth('signup')">Sign Up</button>
+    </div>
+
+    <div id="loginSection">
+      <div class="modal-title">Welcome Back</div>
+      <div class="modal-sub">Sign in to your CivicConnect account</div>
+      <div id="loginErr" class="auth-error hidden"></div>
+      <div class="field"><label for="li_email">Email Address</label><input id="li_email" type="email" placeholder="your@email.com" /></div>
+      <div class="field"><label for="li_pass">Password</label><input id="li_pass" type="password" placeholder="Your password" /></div>
+      <div style="text-align:right;margin-bottom:14px"><a href="#" style="font-size:12.5px;color:var(--blue)" onclick="toast('Password reset email sent (Firebase required)','info')">Forgot password?</a></div>
+      <button class="form-submit" id="loginBtn" onclick="handleLogin()">
+        <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="10 14 21 3"/><path d="M21 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6"/></svg>Sign In
+      </button>
+    </div>
+
+    <div id="signupSection" class="hidden">
+      <div class="modal-title">Create Account</div>
+      <div class="modal-sub">Join Pakistan's civic community portal</div>
+      <div id="signupErr" class="auth-error hidden"></div>
+      <div class="form-row">
+        <div class="field"><label for="su_first">First Name</label><input id="su_first" type="text" placeholder="Ahmed" /></div>
+        <div class="field"><label for="su_last">Last Name</label><input id="su_last" type="text" placeholder="Khan" /></div>
+      </div>
+      <div class="field"><label for="su_email">Email Address</label><input id="su_email" type="email" placeholder="ahmed@email.com" /></div>
+      <div class="field"><label for="su_phone">Phone Number</label><input id="su_phone" type="tel" placeholder="+92 300 0000000" /></div>
+      <div class="field"><label for="su_pass">Password (min. 8 characters)</label><input id="su_pass" type="password" placeholder="Create a strong password" /></div>
+      <button class="form-submit" id="signupBtn" onclick="handleSignup()">
+        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>Create Account
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- LIVE CHAT -->
+<button class="chat-fab" onclick="toggleChat()" aria-label="Open support chat">
+  <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+  <div class="chat-badge" id="chatBadge">1</div>
+</button>
+<div class="chat-panel" id="chatPanel" role="dialog" aria-label="Support chat">
+  <div class="chat-head">
+    <div class="chat-head-left">
+      <div class="chat-avatar"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg><div class="chat-online"></div></div>
+      <div><div class="chat-head-name">CivicConnect Support</div><div class="chat-head-status">Online — Ready to help</div></div>
+    </div>
+    <button class="chat-close-btn" onclick="toggleChat()" aria-label="Close chat">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="chat-msgs" id="chatMsgs">
+    <div class="chat-msg bot">Welcome to CivicConnect Support!</div>
+    <div class="chat-msg bot">How can I assist you today? Ask about finding services, emergency contacts, registering your organization, or any civic matter.</div>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" id="chatInput" placeholder="Ask me anything..." onkeypress="chatKey(event)" aria-label="Chat message" />
+    <button class="chat-send" onclick="sendChat()" aria-label="Send message">
+      <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- ─── FIREBASE (Module) ─────────────────────────────────────────── -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged, updateProfile
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, getDocs, query,
+  where, orderBy, limit, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ───────────────────────────────────────────────────────────────────
+// FIREBASE CONFIGURATION
+// Replace these placeholder values with your actual Firebase project
+// credentials from Firebase Console > Project Settings > Your Apps
+// ───────────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+// ───────────────────────────────────────────────────────────────────
+
+const CONFIGURED = firebaseConfig.apiKey !== "YOUR_API_KEY";
+let auth = null, db = null, currentUser = null;
+
+if (CONFIGURED) {
+  try {
+    const app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    const bar = document.getElementById('fbBar');
+    bar.classList.add('ok');
+    bar.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><polyline points="20 6 9 17 4 12"/></svg><span>Firebase connected — authentication and Firestore are live.</span><button onclick="this.parentElement.style.display=\'none\'" style="margin-left:auto;background:none;border:none;cursor:pointer;color:inherit;font-weight:700">&#10005;</button>';
+    onAuthStateChanged(auth, u => { currentUser = u; window._currentUser = u; updateUserNav(u); });
+  } catch (e) {
+    console.error('Firebase init error:', e);
+    window.toast('Firebase configuration error: ' + e.message, 'error');
+  }
+} else {
+  window._simMode = true;
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────────
+window.handleLogin = async function() {
+  const email = document.getElementById('li_email').value.trim();
+  const pass = document.getElementById('li_pass').value;
+  const errEl = document.getElementById('loginErr');
+  const btn = document.getElementById('loginBtn');
+  errEl.classList.add('hidden');
+  if (!email || !pass) { errEl.textContent = 'Please enter email and password.'; errEl.classList.remove('hidden'); return; }
+  btn.disabled = true; btn.textContent = 'Signing in...';
+  if (CONFIGURED && auth) {
+    try {
+      const r = await signInWithEmailAndPassword(auth, email, pass);
+      closeModal(); window.toast('Welcome back, ' + (r.user.displayName || email.split('@')[0]) + '!', 'success');
+    } catch (e) {
+      const m = { 'auth/user-not-found':'No account found with this email.','auth/wrong-password':'Incorrect password.','auth/invalid-email':'Invalid email address.','auth/too-many-requests':'Too many attempts. Try again later.' };
+      errEl.textContent = m[e.code] || e.message; errEl.classList.remove('hidden');
+    }
+  } else {
+    await delay(700);
+    const fakeUser = { displayName: email.split('@')[0], email };
+    currentUser = fakeUser; window._currentUser = fakeUser;
+    updateUserNav(fakeUser); closeModal();
+    window.toast('Welcome back, ' + fakeUser.displayName + '! (Demo mode)', 'success');
+  }
+  btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round"><polyline points="15 3 21 3 21 9"/><polyline points="10 14 21 3"/><path d="M21 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6"/></svg>Sign In';
+};
+
+window.handleSignup = async function() {
+  const first = document.getElementById('su_first').value.trim();
+  const last = document.getElementById('su_last').value.trim();
+  const email = document.getElementById('su_email').value.trim();
+  const phone = document.getElementById('su_phone').value.trim();
+  const pass = document.getElementById('su_pass').value;
+  const errEl = document.getElementById('signupErr');
+  const btn = document.getElementById('signupBtn');
+  errEl.classList.add('hidden');
+  if (!first || !email || !pass || !phone) { errEl.textContent = 'Please fill in all required fields.'; errEl.classList.remove('hidden'); return; }
+  if (pass.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; errEl.classList.remove('hidden'); return; }
+  btn.disabled = true; btn.textContent = 'Creating account...';
+  if (CONFIGURED && auth) {
+    try {
+      const r = await createUserWithEmailAndPassword(auth, email, pass);
+      await updateProfile(r.user, { displayName: first + ' ' + last });
+      if (db) await addDoc(collection(db, 'users'), { uid: r.user.uid, firstName: first, lastName: last, email, phone, role: 'user', createdAt: serverTimestamp() });
+      closeModal(); window.toast('Account created! Welcome, ' + first + '!', 'success');
+    } catch (e) {
+      const m = { 'auth/email-already-in-use':'An account with this email already exists.','auth/invalid-email':'Invalid email address.','auth/weak-password':'Password is too weak.' };
+      errEl.textContent = m[e.code] || e.message; errEl.classList.remove('hidden');
+    }
+  } else {
+    await delay(900);
+    const fakeUser = { displayName: first + ' ' + last, email };
+    currentUser = fakeUser; window._currentUser = fakeUser;
+    updateUserNav(fakeUser); closeModal();
+    window.toast('Account created! Welcome, ' + first + '! (Demo mode)', 'success');
+  }
+  btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>Create Account';
+};
+
+window.handleLogout = async function() {
+  if (CONFIGURED && auth) await signOut(auth);
+  currentUser = null; window._currentUser = null;
+  updateUserNav(null); window.toast('Logged out successfully.', 'info');
+};
+
+function updateUserNav(user) {
+  const el = document.getElementById('navUser');
+  const dn = document.getElementById('dashName');
+  if (user) {
+    const name = user.displayName || user.email?.split('@')[0] || 'User';
+    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+    el.innerHTML = `<div style="width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="showTab('dashboard')" title="${name}">${initials}</div><span style="font-size:13.5px;font-weight:600;color:var(--navy);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span><button class="btn btn-ghost btn-sm" onclick="handleLogout()">Logout</button>`;
+    if (dn) dn.textContent = name + "'s Dashboard";
+  } else {
+    el.innerHTML = '<button class="btn btn-ghost" onclick="openModal(\'login\')">Log In</button><button class="btn btn-primary" onclick="openModal(\'signup\')">Sign Up Free</button>';
+    if (dn) dn.textContent = 'Admin Panel';
+  }
+}
+
+// ─── SOS EMERGENCY ────────────────────────────────────────────────
+window.triggerSOS = async function() {
+  const btn = document.getElementById('sosBtn');
+  const st = document.getElementById('sosStatus');
+  btn.disabled = true;
+  st.textContent = 'Capturing your GPS location...';
+
+  const sendSOS = async (lat, lng) => {
+    const data = {
+      type: 'SOS Emergency',
+      userEmail: (currentUser || window._currentUser)?.email || 'anonymous',
+      userName: (currentUser || window._currentUser)?.displayName || 'Anonymous',
+      latitude: lat, longitude: lng,
+      timestamp: new Date().toISOString(), status: 'active'
+    };
+    if (CONFIGURED && db) {
+      try {
+        const ref = await addDoc(collection(db, 'emergencies'), { ...data, createdAt: serverTimestamp() });
+        st.textContent = 'SOS sent — ID: ' + ref.id.slice(0,8) + ' | Coordinates: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
+        window.toast('SOS alert submitted to Firestore with your live location.', 'error');
+      } catch (e) { st.textContent = 'SOS submitted (Firestore error: ' + e.message + ')'; }
+    } else {
+      st.textContent = 'SOS sent (demo) — Coordinates: ' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ' | Dial 1122 for real emergencies';
+      window.toast('SOS alert sent with your GPS location. Dial 1122 for immediate help.', 'error');
+    }
+    if (window._leafletMap) {
+      L.marker([lat, lng], { icon: L.divIcon({ className:'', html:'<div style="background:var(--red);color:#fff;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:700;border:2px solid #fff;white-space:nowrap">SOS</div>' }) }).addTo(window._leafletMap).bindPopup('SOS Alert — ' + lat.toFixed(4) + ', ' + lng.toFixed(4)).openPopup();
+      window._leafletMap.setView([lat, lng], 14);
+    }
+    setTimeout(() => { btn.disabled = false; }, 12000);
+  };
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      p => sendSOS(p.coords.latitude, p.coords.longitude),
+      () => { st.textContent = 'Location unavailable — using default coordinates.'; sendSOS(25.3960, 68.3578); },
+      { timeout: 8000, enableHighAccuracy: true }
+    );
+  } else { sendSOS(25.3960, 68.3578); }
+};
+
+// ─── REGISTER SERVICE ─────────────────────────────────────────────
+window.submitRegistration = async function() {
+  const required = ['rf_name','rf_owner','rf_phone','rf_address','rf_desc'];
+  let valid = true;
+  required.forEach(id => {
+    const el = document.getElementById(id);
+    const err = document.getElementById(id + '_err');
+    if (!el?.value?.trim()) { err?.classList.remove('hidden'); valid = false; el?.focus(); }
+    else err?.classList.add('hidden');
+  });
+  if (!valid) return;
+  const btn = document.getElementById('regBtn');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  const data = {
+    name: document.getElementById('rf_name').value.trim(),
+    ownerName: document.getElementById('rf_owner').value.trim(),
+    category: document.getElementById('rf_cat').value,
+    phone: document.getElementById('rf_phone').value.trim(),
+    city: document.getElementById('rf_city').value.trim(),
+    address: document.getElementById('rf_address').value.trim(),
+    lat: parseFloat(document.getElementById('rf_lat').value) || null,
+    lng: parseFloat(document.getElementById('rf_lng').value) || null,
+    description: document.getElementById('rf_desc').value.trim(),
+    status: 'pending', verified: false,
+    submittedBy: (currentUser || window._currentUser)?.email || 'anonymous'
+  };
+  if (CONFIGURED && db) {
+    try {
+      const ref = await addDoc(collection(db, 'serviceRegistrations'), { ...data, createdAt: serverTimestamp() });
+      window.toast('Registration submitted! Reference: #' + ref.id.slice(0,8), 'success');
+      required.forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    } catch (e) { window.toast('Submission error: ' + e.message, 'error'); }
+  } else {
+    await delay(800);
+    window.toast('Registration submitted for admin review. (Demo mode)', 'success');
+  }
+  btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round"><polyline points="22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Submit Registration';
+};
+
+// ─── CONTACT FORM ─────────────────────────────────────────────────
+window.submitContact = async function() {
+  const name = document.getElementById('cf_name').value.trim();
+  const email = document.getElementById('cf_email').value.trim();
+  const msg = document.getElementById('cf_msg').value.trim();
+  if (!name || !email || !msg) { window.toast('Please fill in Name, Email, and Message.', 'error'); return; }
+  const btn = document.getElementById('contactBtn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  const data = { name, email, phone: document.getElementById('cf_phone').value.trim(), subject: document.getElementById('cf_subject').value.trim() || 'General Enquiry', message: msg };
+  if (CONFIGURED && db) {
+    try {
+      await addDoc(collection(db, 'contactMessages'), { ...data, createdAt: serverTimestamp() });
+      window.toast('Message sent. We will respond within 24 hours.', 'success');
+      ['cf_name','cf_email','cf_phone','cf_subject','cf_msg'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    } catch (e) { window.toast('Send error: ' + e.message, 'error'); }
+  } else {
+    await delay(600); window.toast('Message sent. We will respond within 24 hours. (Demo mode)', 'success');
+  }
+  btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round"><polyline points="22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send Message';
+};
+
+// ─── SERVICES DATA ─────────────────────────────────────────────────
+window._services = [
+  {id:1,name:'Liaquat University Hospital (LUMHS)',category:'Hospital',img:'https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=500&q=80&fit=crop',desc:'Leading public sector teaching hospital serving Hyderabad and Sindh with specialized departments.',phone:'+92223878601',address:'Jamshoro Road, Hyderabad',city:'Hyderabad',status:'available',verified:true,lat:25.3705,lng:68.3298},
+  {id:2,name:'Civil Hospital Hyderabad',category:'Hospital',img:'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=500&q=80&fit=crop',desc:'Government general hospital providing emergency, OPD, laboratory, and specialist care services.',phone:'+92223780220',address:'Saddar, Hyderabad',city:'Hyderabad',status:'available',verified:true,lat:25.3714,lng:68.3600},
+  {id:3,name:'Edhi Blood Bank Hyderabad',category:'Blood Bank',img:'https://images.unsplash.com/photo-1615461066841-6116e61058f4?w=500&q=80&fit=crop',desc:'24/7 blood bank facility with all blood types available. Free blood provided for emergencies.',phone:'+92213514010',address:'Auto Bahn Road, Hyderabad',city:'Hyderabad',status:'available',verified:true,lat:25.3672,lng:68.3744},
+  {id:4,name:'Rescue 1122 Hyderabad',category:'Rescue',img:'https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=500&q=80&fit=crop',desc:'Professional emergency rescue service providing medical, fire, and disaster response across Sindh.',phone:'+921122',address:'Qasimabad, Hyderabad',city:'Hyderabad',status:'available',verified:true,lat:25.4007,lng:68.3466},
+  {id:5,name:'Sindh Government Secretariat',category:'Government',img:'https://images.unsplash.com/photo-1568992687947-868a62a9f521?w=500&q=80&fit=crop',desc:'Provincial government offices handling civic administration, public welfare, and regulatory affairs.',phone:'+92213921001',address:'Karachi Road, Hyderabad',city:'Hyderabad',status:'busy',verified:true,lat:25.3790,lng:68.3559},
+  {id:6,name:'Saylani Welfare Hyderabad',category:'Welfare',img:'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=500&q=80&fit=crop',desc:'Providing free meals, education, medical aid, and skill development to underprivileged communities.',phone:'+92213432161',address:'Latifabad Unit 6, Hyderabad',city:'Hyderabad',status:'available',verified:true,lat:25.4123,lng:68.3211},
+  {id:7,name:'Pakistan Red Crescent Hyderabad',category:'NGO',img:'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=500&q=80&fit=crop',desc:'Humanitarian assistance, disaster relief, blood donation coordination, and health education programs.',phone:'+92223880001',address:'Saddar, Hyderabad',city:'Hyderabad',status:'available',verified:true,lat:25.3693,lng:68.3615},
+  {id:8,name:'Aga Khan Hospital Hyderabad',category:'Hospital',img:'https://images.unsplash.com/photo-1504439468489-c8920d796a29?w=500&q=80&fit=crop',desc:'Private tertiary care hospital with international standards, advanced diagnostics, and specialist departments.',phone:'+92222630015',address:'Hussainabad, Hyderabad',city:'Hyderabad',status:'available',verified:true,lat:25.3832,lng:68.3711},
+  {id:9,name:'NADRA Regional Office Hyderabad',category:'Government',img:'https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=500&q=80&fit=crop',desc:'National identity documentation authority — CNIC, passport, and digital ID processing services.',phone:'+92223880511',address:'Auto Bahn Road, Hyderabad',city:'Hyderabad',status:'available',verified:true,lat:25.3760,lng:68.3800},
+  {id:10,name:'Blood Care Foundation Hyderabad',category:'Blood Bank',img:'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=500&q=80&fit=crop',desc:'Certified blood bank with voluntary donor registry and 24-hour emergency blood supply services.',phone:'+92223879900',address:'Latifabad, Hyderabad',city:'Hyderabad',status:'busy',verified:true,lat:25.4089,lng:68.3299},
+  {id:11,name:'Akhuwat Foundation Hyderabad',category:'Welfare',img:'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=500&q=80&fit=crop',desc:'Interest-free microfinance and social welfare programs empowering low-income families across Sindh.',phone:'+92223783000',address:'Qasimabad, Hyderabad',city:'Hyderabad',status:'available',verified:true,lat:25.4001,lng:68.3422},
+  {id:12,name:'Al-Khidmat Foundation Hyderabad',category:'NGO',img:'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=500&q=80&fit=crop',desc:'Large-scale welfare organization providing education, health, and disaster relief services.',phone:'+92223782200',address:'Tando Halari Road, Hyderabad',city:'Hyderabad',status:'available',verified:true,lat:25.3943,lng:68.3500},
+];
+
+window._currentCat = 'All';
+
+window.setCategory = function(cat, el) {
+  window._currentCat = cat;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  else {
+    document.querySelectorAll('.chip').forEach(c => { if (c.dataset.cat === cat) c.classList.add('active'); });
+  }
+  filterServices();
+};
+
+window.filterServices = function() {
+  const svc = window._services;
+  const search = (document.getElementById('svcSearch')?.value || '').toLowerCase();
+  const cat = window._currentCat;
+  let filtered = svc;
+  if (cat !== 'All') filtered = filtered.filter(s => s.category === cat);
+  if (search) filtered = filtered.filter(s => s.name.toLowerCase().includes(search) || s.desc.toLowerCase().includes(search) || s.address.toLowerCase().includes(search) || s.city.toLowerCase().includes(search));
+  renderServices(filtered);
+};
+
+window.globalSearch = function(val) {
+  if (document.getElementById('svcSearch')) document.getElementById('svcSearch').value = val;
+  if (val.length > 1) { showTab('services'); filterServices(); }
+};
+
+window.handleHeroSearch = function(val) {
+  if (document.getElementById('svcSearch')) document.getElementById('svcSearch').value = val;
+};
+
+window.goToServices = function() {
+  const val = document.getElementById('heroInput')?.value;
+  if (val && document.getElementById('svcSearch')) document.getElementById('svcSearch').value = val;
+  showTab('services'); filterServices();
+};
+
+function renderServices(list) {
+  const grid = document.getElementById('svcGrid');
+  const empty = document.getElementById('svcEmpty');
+  const loading = document.getElementById('svcLoading');
+  if (!grid) return;
+  loading.style.display = 'none';
+  if (!list || !list.length) {
+    grid.classList.add('hidden'); empty?.classList.remove('hidden'); return;
+  }
+  empty?.classList.add('hidden'); grid.classList.remove('hidden');
+  grid.innerHTML = list.map(s => `
+    <div class="service-card" role="article">
+      <div class="service-card-img">
+        ${s.verified ? '<div class="svc-verified"><svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>Verified</div>' : ''}
+        <img src="${s.img}" alt="${s.name}" loading="lazy" onerror="this.style.objectFit='none';this.style.background='var(--blue-lt)'" />
+        <div class="svc-badge ${s.status==='available'?'badge-avail':'badge-busy'}">${s.status==='available'?'Available':'Busy'}</div>
+      </div>
+      <div class="service-card-body">
+        <div class="svc-cat">${s.category}</div>
+        <div class="svc-name">${s.name}</div>
+        <div class="svc-desc">${s.desc}</div>
+        <div class="svc-info">
+          <div class="svc-info-row"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72"/></svg><a href="tel:${s.phone}">${s.phone}</a></div>
+          <div class="svc-info-row"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>${s.address}, ${s.city}</div>
+        </div>
+        <div class="svc-actions">
+          <a href="tel:${s.phone}" class="btn btn-primary btn-sm"><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07"/></svg>Call</a>
+          <button class="btn btn-ghost btn-sm" onclick="saveFav('${s.id}','${s.name}')"><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Save</button>
+          ${s.lat ? `<button class="btn btn-ghost btn-sm" onclick="jumpToMap(${s.lat},${s.lng},'${s.name}')"><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Map</button>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+window.saveFav = async function(id, name) {
+  const user = window._currentUser;
+  if (!user) { openModal('login'); return; }
+  if (CONFIGURED && db) {
+    try { await addDoc(collection(db, 'favorites'), { uid: user.uid || user.email, serviceId: id, serviceName: name, savedAt: serverTimestamp() }); }
+    catch(e) { console.warn(e); }
+  }
+  window.toast('"' + name + '" saved to your favorites.', 'success');
+};
+
+window.jumpToMap = function(lat, lng, name) {
+  showTab('emergency');
+  setTimeout(() => {
+    if (window._leafletMap) { window._leafletMap.setView([lat, lng], 15); window.toast('Map moved to: ' + name, 'info'); }
+  }, 300);
+};
+
+// ─── LEAFLET MAP ──────────────────────────────────────────────────
+window.initMap = function() {
+  const el = document.getElementById('leafletMap');
+  if (!el || window._leafletMap) return;
+  const map = L.map('leafletMap', { center: [25.3960, 68.3578], zoom: 12 });
+  window._leafletMap = map;
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap | CivicConnect' }).addTo(map);
+
+  const iconColors = { Hospital:'#1d5fc4', 'Blood Bank':'#c0392b', NGO:'#1a7f4b', Government:'#b45309', Welfare:'#7c3aed', Rescue:'#b45309', default:'#374151' };
+  (window._services || []).filter(s => s.lat && s.lng).forEach(s => {
+    const color = iconColors[s.category] || iconColors.default;
+    const marker = L.marker([s.lat, s.lng], {
+      icon: L.divIcon({ className:'', html:`<div style="background:${color};width:30px;height:30px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div>`, iconSize:[30,30], iconAnchor:[15,15] })
+    });
+    marker.bindPopup(`<div style="font-family:Inter,sans-serif;min-width:190px"><div style="font-weight:700;font-size:13.5px;color:#0b1f3a;margin-bottom:3px">${s.name}</div><div style="font-size:11.5px;font-weight:700;color:${color};margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">${s.category}</div><div style="font-size:12px;color:#4b5563;margin-bottom:2px"><a href="tel:${s.phone}" style="color:${color}">${s.phone}</a></div><div style="font-size:12px;color:#4b5563">${s.address}</div></div>`);
+    marker.addTo(map);
+  });
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(p => {
+      const { latitude: lat, longitude: lng } = p.coords;
+      L.circle([lat, lng], { color: '#1d5fc4', fillColor: '#1d5fc4', fillOpacity: .1, radius: 400 }).addTo(map);
+      L.marker([lat, lng], { icon: L.divIcon({ className:'', html:'<div style="background:#1d5fc4;color:#fff;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:700;border:2px solid #fff;white-space:nowrap">You</div>' }) }).addTo(map);
+    }, () => {});
+  }
+};
+
+// Helper
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Load services initially
+setTimeout(() => { renderServices(window._services); }, 600);
+
+</script>
+
+<!-- ─── UI SCRIPT ─────────────────────────────────────────────────── -->
+<script>
+// TAB SYSTEM
+function showTab(tab) {
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+  const el = document.getElementById('tab-' + tab);
+  if (el) el.classList.remove('hidden');
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('mainFooter').classList.toggle('hidden', tab === 'dashboard');
+  if (tab === 'emergency' && !window._leafletMap) setTimeout(() => window.initMap && window.initMap(), 250);
+  if (tab === 'services') {
+    document.getElementById('svcLoading').style.display = 'none';
+    document.getElementById('svcGrid').classList.remove('hidden');
+    window.filterServices && window.filterServices();
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// SIDEBAR
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// AUTH MODAL
+function openModal(type) {
+  document.getElementById('authModal').classList.add('open');
+  switchAuth(type || 'login');
+}
+function closeModal() { document.getElementById('authModal').classList.remove('open'); }
+function switchAuth(tab) {
+  document.getElementById('loginSection').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('signupSection').classList.toggle('hidden', tab !== 'signup');
+  document.getElementById('loginTab').classList.toggle('active', tab === 'login');
+  document.getElementById('signupTab').classList.toggle('active', tab === 'signup');
+  document.getElementById('loginErr').classList.add('hidden');
+  document.getElementById('signupErr').classList.add('hidden');
+}
+document.getElementById('authModal').addEventListener('click', e => { if (e.target === document.getElementById('authModal')) closeModal(); });
+
+// FAQ
+function toggleFaq(el) {
+  const item = el.parentElement;
+  const open = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+  if (!open) item.classList.add('open');
+}
+
+// DASHBOARD
+function activateDash(el) {
+  document.querySelectorAll('.dash-nav').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('dashViewTitle').textContent = el.textContent.trim();
+  toast('Viewing: ' + el.textContent.trim(), 'info');
+}
+function approveRow(btn) {
+  const row = btn.closest('tr');
+  row.querySelector('.pill').className = 'pill pill-approved';
+  row.querySelector('.pill').textContent = 'Approved';
+  btn.textContent = 'View';
+  btn.className = 'btn btn-ghost btn-sm';
+  btn.onclick = null;
+  toast('Service approved and now publicly listed.', 'success');
+}
+
+// CALL EMERGENCY
+function callService(type, num) { toast('Connecting to ' + type + ' — Dial ' + num, 'error'); }
+
+// CHAT
+let chatOpen = false;
+let botIdx = 0;
+const botReplies = [
+  'I can help you find hospitals, blood banks, or NGOs near you. Which city are you looking in?',
+  'For real emergencies, press the SOS button in the Emergency tab, or call 1122 for ambulance services.',
+  'To register your organization, click Register Service in the top navigation bar.',
+  'Blood donation drives are posted in Announcements. Filter Blood Bank in the Services tab for nearby centers.',
+  'Our admin team reviews service registrations within 24 to 48 hours of submission.',
+  'You can search for any service using the search bar at the top of the Services page.'
+];
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('chatPanel').classList.toggle('open', chatOpen);
+  document.getElementById('chatBadge').style.display = chatOpen ? 'none' : 'flex';
+}
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  const msgs = document.getElementById('chatMsgs');
+  msgs.innerHTML += `<div class="chat-msg user">${msg}</div>`;
+  input.value = '';
+  const typing = document.createElement('div');
+  typing.className = 'chat-msg bot';
+  typing.textContent = '...';
+  msgs.appendChild(typing);
+  msgs.scrollTop = msgs.scrollHeight;
+  setTimeout(() => {
+    typing.textContent = botReplies[botIdx % botReplies.length];
+    botIdx++;
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 900);
+}
+function chatKey(e) { if (e.key === 'Enter') sendChat(); }
+
+// TOAST
+function toast(msg, type = 'info') {
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  const icons = {
+    success: '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
+    error: '<svg viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+  };
+  el.innerHTML = (icons[type] || icons.info) + '<span style="flex:1">' + msg + '</span><span onclick="this.parentElement.remove()" style="cursor:pointer;color:var(--gray-4);margin-left:8px;font-size:16px;line-height:1">&#10005;</span>';
+  wrap.appendChild(el);
+  setTimeout(() => el.remove && el.remove(), 5000);
+}
+window.toast = toast;
+
+// Global expose
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.switchAuth = switchAuth;
+window.showTab = showTab;
+window.closeSidebar = closeSidebar;
+window.toggleFaq = toggleFaq;
+window.toggleChat = toggleChat;
+window.sendChat = sendChat;
+window.chatKey = chatKey;
+window.approveRow = approveRow;
+window.activateDash = activateDash;
+window.callService = callService;
+</script>
+</body>
+</html>
